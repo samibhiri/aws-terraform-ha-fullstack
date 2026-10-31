@@ -9,7 +9,7 @@ load balancing, auto scaling and a managed database.
 
 - [x] Networking (VPC, subnets, gateways)
 - [x] Security groups
-- [ ] Database (RDS)
+- [x] Database (RDS)
 - [ ] Backend (EC2, Auto Scaling, Load Balancer)
 - [ ] Frontend
 
@@ -34,6 +34,8 @@ flowchart TB
             pubB[Public subnet<br/>10.0.2.0/24]
             privB[Private subnet<br/>10.0.12.0/24]
         end
+
+        rds[(RDS MySQL<br/>db.t3.micro<br/>DB subnet group)]
     end
 
     internet <--> igw
@@ -44,6 +46,8 @@ flowchart TB
     nat --- rtpriv
     rtpriv --- privA
     rtpriv --- privB
+    privA -.- rds
+    privB -.- rds
 ```
 
 ## Network design
@@ -79,3 +83,22 @@ flowchart LR
 
 - No SSH is opened anywhere: instances are administered through **AWS Systems Manager Session Manager**.
 - The database has no outbound rule, as it never needs to initiate connections.
+
+## Database
+
+- **Amazon RDS for MySQL 8.0**, `db.t3.micro`, 20 GB gp3 storage
+- Deployed in a **DB subnet group** spanning both private subnets
+- `publicly_accessible = false`: the database has no public endpoint
+- Single-AZ to limit costs (Multi-AZ would be enabled in production)
+
+### Secrets handling
+
+The master password is **never stored in the code**. It is declared as a
+`sensitive` Terraform variable with no default value, and supplied at runtime:
+
+```bash
+export TF_VAR_db_password='<strong-password>'
+```
+
+Alternatively, copy `terraform/terraform.tfvars.example` to `terraform.tfvars`
+(git-ignored) and fill in the values.

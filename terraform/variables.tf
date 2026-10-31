@@ -83,3 +83,22 @@ resource "aws_vpc_security_group_egress_rule" "frontend_all" {
   ip_protocol       = "-1"
 }
 
+variable "db_name" {
+  description = "Name of the application database"
+  type        = string
+  default     = "appdb"
+}
+
+variable "db_username" {
+  description = "Master username of the database"
+  type        = string
+  default     = "appadmin"
+}
+
+variable "db_password" {
+  description = "Master password of the database"
+  type        = string
+  sensitive   = true
+}
+
+
