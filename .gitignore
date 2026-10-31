@@ -46,3 +46,4 @@ terraform.rc
 !*.tfvars.example
 .env
 *.pem
+node_modules/
