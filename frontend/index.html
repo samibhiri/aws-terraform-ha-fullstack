@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guestbook</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 16px; }
+    form { display: flex; gap: 8px; margin-bottom: 24px; }
+    input { flex: 1; padding: 8px; }
+    button { padding: 8px 16px; cursor: pointer; }
+    li { padding: 8px 0; border-bottom: 1px solid #ddd; }
+    small { color: #888; }
+  </style>
+</head>
+<body>
+  <h1>Guestbook</h1>
+  <p><small>Served from EC2 · API behind an Application Load Balancer · data in RDS</small></p>
+
+  <form id="form">
+    <input id="content" placeholder="Write a message..." required />
+    <button type="submit">Send</button>
+  </form>
+
+  <ul id="messages"></ul>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
