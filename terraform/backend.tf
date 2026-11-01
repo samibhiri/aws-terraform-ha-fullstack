@@ -68,8 +68,9 @@ resource "aws_autoscaling_group" "backend" {
   desired_capacity    = 2
   max_size            = 4
   vpc_zone_identifier = aws_subnet.private[*].id
+  target_group_arns   = [aws_lb_target_group.backend.arn]
 
-  health_check_type         = "EC2"
+  health_check_type         = "ELB"
   health_check_grace_period = 300
 
   launch_template {

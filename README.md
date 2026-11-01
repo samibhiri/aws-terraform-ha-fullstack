@@ -10,7 +10,7 @@ load balancing, auto scaling and a managed database.
 - [x] Networking (VPC, subnets, gateways)
 - [x] Security groups
 - [x] Database (RDS)
-- [ ] Backend (EC2, Auto Scaling, Load Balancer) — *in progress: Auto Scaling done, Load Balancer next*
+- [x] Backend (EC2, Auto Scaling, Load Balancer)
 - [ ] Frontend
 
 ## Architecture (current state)
@@ -39,7 +39,8 @@ flowchart TB
             end
         end
 
-        asg{{Auto Scaling Group<br/>min 2 / max 4}}
+        alb{{Application Load Balancer<br/>public subnets A + B}}
+        asg[[Auto Scaling Group<br/>min 2 / max 4<br/>CPU target 70%]]
         rds[(RDS MySQL<br/>db.t3.micro)]
     end
 
@@ -51,6 +52,9 @@ flowchart TB
     nat --- rtpriv
     rtpriv --- privA
     rtpriv --- privB
+    igw -->|HTTP 80| alb
+    alb -->|/api · port 3000| be1
+    alb -->|/api · port 3000| be2
     asg -.manages.- be1
     asg -.manages.- be2
     be1 -->|MySQL 3306| rds
@@ -132,3 +136,15 @@ All connection settings are read from environment variables: no secret lives in 
 - **Auto Scaling Group**: min 2 / desired 2 / max 4 instances, spread across both private subnets
 
 Every new instance bootstraps itself: no manual SSH or configuration is ever needed.
+
+### Load balancing and resilience
+
+- **Application Load Balancer** across both public subnets, listening on HTTP 80
+- **Target Group** forwarding to the API on port 3000, with a health check on `GET /health`
+- The ASG uses **ELB health checks**: an instance whose API stops answering is
+  automatically terminated and replaced (self-healing)
+- **Target-tracking scaling policy**: the ASG scales out when average CPU exceeds 70 %
+  and scales back in when load drops, always between 2 and 4 instances
+
+Users never reach the backend instances directly: all traffic goes
+**Internet → ALB → Target Group → EC2**.

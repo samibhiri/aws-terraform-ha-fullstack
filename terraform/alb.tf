@@ -35,3 +35,16 @@ resource "aws_lb_listener" "http" {
     target_group_arn = aws_lb_target_group.backend.arn
   }
 }
+
+resource "aws_autoscaling_policy" "cpu" {
+  name                   = "${var.project_name}-cpu-target-tracking"
+  autoscaling_group_name = aws_autoscaling_group.backend.name
+  policy_type            = "TargetTrackingScaling"
+
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+    target_value = 70
+  }
+}

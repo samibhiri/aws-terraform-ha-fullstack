@@ -8,3 +8,8 @@ output "db_endpoint" {
   description = "Endpoint of the RDS database"
   value       = aws_db_instance.main.address
 }
+
+output "alb_dns_name" {
+  description = "Public DNS name of the load balancer"
+  value       = aws_lb.main.dns_name
+}
