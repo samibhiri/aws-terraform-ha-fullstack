@@ -1,0 +1,41 @@
+#!/bin/bash
+set -euxo pipefail
+
+# Install Node.js and git
+apt-get update -y
+apt-get install -y git nodejs npm
+
+# Fetch the application code
+git clone ${repo_url} /opt/app
+cd /opt/app/backend
+npm ci --omit=dev
+
+# Environment variables for the API (readable by root only)
+cat > /etc/backend.env <<EOF
+PORT=${app_port}
+DB_HOST=${db_host}
+DB_PORT=${db_port}
+DB_NAME=${db_name}
+DB_USER=${db_user}
+DB_PASS=${db_pass}
+EOF
+chmod 600 /etc/backend.env
+
+# Run the API as a systemd service (auto-restart, starts on boot)
+cat > /etc/systemd/system/backend.service <<EOF
+[Unit]
+Description=Backend API
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/app/backend
+EnvironmentFile=/etc/backend.env
+ExecStart=/usr/bin/node server.js
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now backend

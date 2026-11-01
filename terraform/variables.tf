@@ -101,4 +101,8 @@ variable "db_password" {
   sensitive   = true
 }
 
-
+variable "repo_url" {
+  description = "Git repository cloned by the instances at boot"
+  type        = string
+  default     = "https://github.com/samibhiri/aws-terraform-ha-fullstack.git"
+}
