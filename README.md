@@ -11,7 +11,9 @@ load balancing, auto scaling and a managed database.
 - [x] Security groups
 - [x] Database (RDS)
 - [x] Backend (EC2, Auto Scaling, Load Balancer)
-- [ ] Frontend
+- [x] Frontend
+- [ ] CI pipeline (GitHub Actions)
+- [ ] End-to-end deployment and resilience demo
 
 ## Architecture (current state)
 
@@ -25,8 +27,10 @@ flowchart TB
         rtpriv[Private route table<br/>0.0.0.0/0 → NAT]
 
         subgraph AZA["AZ A"]
-            pubA[Public subnet<br/>10.0.1.0/24]
-            nat[NAT Gateway<br/>+ Elastic IP]
+            subgraph pubA["Public subnet 10.0.1.0/24"]
+                fe[EC2 Frontend<br/>nginx]
+                nat[NAT Gateway<br/>+ Elastic IP]
+            end
             subgraph privA["Private subnet 10.0.11.0/24"]
                 be1[EC2 Backend<br/>Node.js API]
             end
@@ -48,10 +52,11 @@ flowchart TB
     igw --- rtpub
     rtpub --- pubA
     rtpub --- pubB
-    pubA --- nat
     nat --- rtpriv
     rtpriv --- privA
     rtpriv --- privB
+    igw -->|HTTP 80| fe
+    fe -. "browser calls API<br/>via ALB DNS" .-> alb
     igw -->|HTTP 80| alb
     alb -->|/api · port 3000| be1
     alb -->|/api · port 3000| be2
@@ -148,3 +153,12 @@ Every new instance bootstraps itself: no manual SSH or configuration is ever nee
 
 Users never reach the backend instances directly: all traffic goes
 **Internet → ALB → Target Group → EC2**.
+
+## Frontend
+
+- Static **HTML / JavaScript** guestbook (`frontend/`) served by **nginx**
+  on an EC2 instance in a public subnet
+- Bootstrapped by User Data: installs nginx, clones this repository and copies the static files
+- At boot, a `config.js` file is generated with the **ALB DNS name** injected by Terraform:
+  the browser always calls the API through the load balancer, never a backend IP
+- Administered through SSM Session Manager (no SSH port open)

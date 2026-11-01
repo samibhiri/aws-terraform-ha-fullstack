@@ -1,0 +1,18 @@
+#!/bin/bash
+set -euxo pipefail
+
+# Install nginx and git
+apt-get update -y
+apt-get install -y nginx git
+
+# Fetch the frontend files
+git clone ${repo_url} /opt/app
+cp -r /opt/app/frontend/* /var/www/html/
+rm -f /var/www/html/index.nginx-debian.html
+
+# Point the frontend to the backend through the ALB DNS name
+cat > /var/www/html/config.js <<EOF
+const API_URL = "http://${alb_dns_name}";
+EOF
+
+systemctl enable --now nginx
