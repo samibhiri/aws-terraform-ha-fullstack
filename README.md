@@ -10,7 +10,7 @@ load balancing, auto scaling and a managed database.
 - [x] Networking (VPC, subnets, gateways)
 - [x] Security groups
 - [x] Database (RDS)
-- [ ] Backend (EC2, Auto Scaling, Load Balancer)
+- [ ] Backend (EC2, Auto Scaling, Load Balancer) — *in progress: Auto Scaling done, Load Balancer next*
 - [ ] Frontend
 
 ## Architecture (current state)
@@ -27,15 +27,20 @@ flowchart TB
         subgraph AZA["AZ A"]
             pubA[Public subnet<br/>10.0.1.0/24]
             nat[NAT Gateway<br/>+ Elastic IP]
-            privA[Private subnet<br/>10.0.11.0/24]
+            subgraph privA["Private subnet 10.0.11.0/24"]
+                be1[EC2 Backend<br/>Node.js API]
+            end
         end
 
         subgraph AZB["AZ B"]
             pubB[Public subnet<br/>10.0.2.0/24]
-            privB[Private subnet<br/>10.0.12.0/24]
+            subgraph privB["Private subnet 10.0.12.0/24"]
+                be2[EC2 Backend<br/>Node.js API]
+            end
         end
 
-        rds[(RDS MySQL<br/>db.t3.micro<br/>DB subnet group)]
+        asg{{Auto Scaling Group<br/>min 2 / max 4}}
+        rds[(RDS MySQL<br/>db.t3.micro)]
     end
 
     internet <--> igw
@@ -46,8 +51,10 @@ flowchart TB
     nat --- rtpriv
     rtpriv --- privA
     rtpriv --- privB
-    privA -.- rds
-    privB -.- rds
+    asg -.manages.- be1
+    asg -.manages.- be2
+    be1 -->|MySQL 3306| rds
+    be2 -->|MySQL 3306| rds
 ```
 
 ## Network design
@@ -102,3 +109,26 @@ export TF_VAR_db_password='<strong-password>'
 
 Alternatively, copy `terraform/terraform.tfvars.example` to `terraform.tfvars`
 (git-ignored) and fill in the values.
+
+## Backend
+
+### Application
+
+A minimal **Node.js / Express** REST API (`backend/`) backed by MySQL:
+
+| Endpoint | Description |
+|---|---|
+| `GET /health` | Health check (returns `200 OK`) |
+| `GET /api/messages` | List messages |
+| `POST /api/messages` | Create a message (`{ "content": "..." }`) |
+
+All connection settings are read from environment variables: no secret lives in the code.
+
+### Compute
+
+- **Launch Template**: Ubuntu 24.04 LTS, `t3.micro`, backend security group, IAM instance profile for SSM
+- **User Data** (rendered with Terraform `templatefile()`): installs Node.js, clones this repository,
+  installs dependencies and runs the API as a **systemd service** (auto-restart, starts on boot)
+- **Auto Scaling Group**: min 2 / desired 2 / max 4 instances, spread across both private subnets
+
+Every new instance bootstraps itself: no manual SSH or configuration is ever needed.

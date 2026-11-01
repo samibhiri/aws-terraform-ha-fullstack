@@ -60,3 +60,26 @@ resource "aws_launch_template" "backend" {
     tags          = { Name = "${var.project_name}-backend" }
   }
 }
+
+# --- Auto Scaling Group: keeps 2 to 4 backend instances running ---
+resource "aws_autoscaling_group" "backend" {
+  name                = "${var.project_name}-backend-asg"
+  min_size            = 2
+  desired_capacity    = 2
+  max_size            = 4
+  vpc_zone_identifier = aws_subnet.private[*].id
+
+  health_check_type         = "EC2"
+  health_check_grace_period = 300
+
+  launch_template {
+    id      = aws_launch_template.backend.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "${var.project_name}-backend"
+    propagate_at_launch = true
+  }
+}
