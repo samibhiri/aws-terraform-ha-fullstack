@@ -1,5 +1,7 @@
 # AWS Highly-Available Full-Stack Deployment with Terraform
 
+[![Terraform CI](https://github.com/samibhiri/aws-terraform-ha-fullstack/actions/workflows/terraform-ci.yml/badge.svg)](https://github.com/samibhiri/aws-terraform-ha-fullstack/actions/workflows/terraform-ci.yml)
+
 Deploying a full-stack web application on AWS using Terraform: custom VPC,
 load balancing, auto scaling and a managed database.
 
@@ -12,7 +14,7 @@ load balancing, auto scaling and a managed database.
 - [x] Database (RDS)
 - [x] Backend (EC2, Auto Scaling, Load Balancer)
 - [x] Frontend
-- [ ] CI pipeline (GitHub Actions)
+- [x] CI pipeline (GitHub Actions): `fmt`, `validate` and `tflint` on every pull request
 - [ ] End-to-end deployment and resilience demo
 
 ## Architecture (current state)
@@ -162,3 +164,10 @@ Users never reach the backend instances directly: all traffic goes
 - At boot, a `config.js` file is generated with the **ALB DNS name** injected by Terraform:
   the browser always calls the API through the load balancer, never a backend IP
 - Administered through SSM Session Manager (no SSH port open)
+
+## Development workflow
+
+- `main` is protected: changes are only merged through **pull requests**
+- Every pull request runs the **Terraform CI** workflow (`terraform fmt -check`,
+  `terraform validate`, `tflint` with the AWS ruleset); merging is blocked until it passes
+- One short-lived branch per topic (e.g. `ci/...`, `feat/...`, `docs/...`), deleted after merge
