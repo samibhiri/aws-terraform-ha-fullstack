@@ -170,4 +170,4 @@ Users never reach the backend instances directly: all traffic goes
 - `main` is protected: changes are only merged through **pull requests**
 - Every pull request runs the **Terraform CI** workflow (`terraform fmt -check`,
   `terraform validate`, `tflint` with the AWS ruleset); merging is blocked until it passes
-- One short-lived branch per topic (e.g. `ci/...`, `feat/...`, `docs/...`), deleted after merge
+- One short-lived branch per topic (e.g. `ci/...`, `feat/...`, `docs/...`), deleted after merge (updated)
