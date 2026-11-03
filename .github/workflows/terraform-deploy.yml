@@ -1,0 +1,83 @@
+name: Terraform deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to run"
+        type: choice
+        options:
+          - apply
+          - destroy
+        required: true
+      confirm:
+        description: "Type the action name again to confirm (apply or destroy)"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  id-token: write # required to request the OIDC token
+
+# Never run two deployments at the same time
+concurrency:
+  group: terraform-deploy
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: terraform
+
+jobs:
+  deploy:
+    name: Terraform ${{ inputs.action }}
+    runs-on: ubuntu-latest
+    # Deployments are only allowed from the protected main branch
+    if: github.ref == 'refs/heads/main'
+    env:
+      TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
+    steps:
+      - name: Check confirmation
+        run: |
+          if [ "${{ inputs.confirm }}" != "${{ inputs.action }}" ]; then
+            echo "::error::Confirmation does not match the selected action. Nothing was done."
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_APPLY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: terraform init
+        run: terraform init -input=false
+
+      - name: terraform apply
+        if: inputs.action == 'apply'
+        run: terraform apply -input=false -auto-approve
+
+      - name: Publish outputs
+        if: inputs.action == 'apply'
+        run: |
+          {
+            echo "### Deployment outputs"
+            echo '```'
+            terraform output
+            echo '```'
+            echo "Application may take a few minutes to become available while instances bootstrap."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: terraform destroy
+        if: inputs.action == 'destroy'
+        run: |
+          terraform destroy -input=false -auto-approve
+          echo "### Infrastructure destroyed" >> "$GITHUB_STEP_SUMMARY"

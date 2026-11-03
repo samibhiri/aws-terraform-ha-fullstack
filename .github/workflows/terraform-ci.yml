@@ -72,7 +72,7 @@ jobs:
 
       - name: terraform plan
         run: |
-          terraform plan -input=false -no-color -out=tfplan
+          terraform plan -input=false -no-color -lock=false -out=tfplan
           terraform show -no-color tfplan > plan.txt
 
       - name: Comment plan on the pull request
