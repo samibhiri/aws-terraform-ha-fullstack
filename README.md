@@ -15,6 +15,8 @@ load balancing, auto scaling and a managed database.
 - [x] Backend (EC2, Auto Scaling, Load Balancer)
 - [x] Frontend
 - [x] CI pipeline (GitHub Actions): `fmt`, `validate` and `tflint` on every pull request
+- [x] `terraform plan` on every pull request, authenticated to AWS with OIDC
+- [x] Remote state in S3 and manual apply / destroy workflow
 - [ ] End-to-end deployment and resilience demo
 
 ## Architecture (current state)
@@ -165,9 +167,72 @@ Users never reach the backend instances directly: all traffic goes
   the browser always calls the API through the load balancer, never a backend IP
 - Administered through SSM Session Manager (no SSH port open)
 
-## Development workflow
+## CI/CD
 
-- `main` is protected: changes are only merged through **pull requests**
-- Every pull request runs the **Terraform CI** workflow (`terraform fmt -check`,
-  `terraform validate`, `tflint` with the AWS ruleset); merging is blocked until it passes
-- One short-lived branch per topic (e.g. `ci/...`, `feat/...`, `docs/...`), deleted after merge (updated)
+```mermaid
+flowchart LR
+    dev([Developer]) -->|push branch| pr[Pull request]
+    pr --> checks[Job: fmt · validate · tflint]
+    checks --> plan[Job: terraform plan<br/>read-only role]
+    plan -->|plan posted as PR comment| review{Review}
+    review -->|merge| main[(main)]
+    main -->|Run workflow: apply / destroy| deploy[Terraform deploy<br/>apply role]
+    deploy --> aws[(AWS)]
+    plan -. reads state .-> s3[(S3 state bucket)]
+    deploy -. reads / writes state + lock .-> s3
+```
+
+### Development workflow
+
+- `main` is protected: changes are only merged through **pull requests**,
+  one short-lived branch per topic (`ci/...`, `feat/...`, `docs/...`), deleted after merge
+- Every pull request runs two **required checks**:
+  1. **Format, validate and lint**: `terraform fmt -check`, `terraform validate`, `tflint` (AWS ruleset)
+  2. **Terraform plan**: the full plan is posted as a comment on the pull request for review
+
+### Authentication: OIDC, no stored AWS keys
+
+GitHub Actions authenticates to AWS with **OpenID Connect**: each run receives
+short-lived credentials (1 hour) by assuming an IAM role. No access key is stored in GitHub.
+
+| IAM role | Used by | Permissions | Trust condition |
+|---|---|---|---|
+| `github-actions-terraform-plan` | pull request plans | `ReadOnlyAccess` | this repository only |
+| `github-actions-terraform-apply` | manual deployments | `AdministratorAccess` | this repository, **`main` branch only** |
+
+Trust policies match GitHub's OIDC `sub` claim, which includes the immutable owner and
+repository IDs (`repo:<owner>@<id>/<repo>@<id>:...`): a renamed or re-created repository
+with the same name cannot assume the roles.
+
+### Remote state
+
+- Terraform state is stored in an **S3 bucket** (versioned, encrypted, public access blocked)
+- **Native S3 locking** (`use_lockfile`) prevents two runs from modifying the state at the same time
+- Pull request plans are read-only and run with `-lock=false`
+
+### Deployment
+
+Deployments are **manual**, from the **Actions** tab → **Terraform deploy** → **Run workflow**:
+
+1. choose `apply` or `destroy`
+2. type the action name again to confirm
+3. after `apply`, the frontend URL and the ALB DNS name are shown in the run summary
+
+Only one deployment can run at a time, and only from `main`.
+
+> 💸 The NAT Gateway, the ALB and RDS are billed by the hour: the stack is destroyed right after each demo.
+
+### Required GitHub secrets
+
+| Secret | Purpose |
+|---|---|
+| `AWS_ROLE_ARN` | ARN of the read-only plan role |
+| `AWS_APPLY_ROLE_ARN` | ARN of the deployment role |
+| `TF_VAR_DB_PASSWORD` | RDS master password, injected as `TF_VAR_db_password` |
+
+## Possible improvements
+
+- Replace `AdministratorAccess` on the deployment role with a least-privilege policy
+- HTTPS with an ACM certificate and a custom domain
+- Database password in AWS Secrets Manager instead of instance user data
+- One NAT Gateway per AZ and Multi-AZ RDS for production-grade availability
