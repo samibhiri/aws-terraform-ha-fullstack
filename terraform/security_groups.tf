@@ -1,3 +1,4 @@
+# --- ALB: HTTP from the internet ---
 resource "aws_security_group" "alb" {
   name        = "${var.project_name}-alb-sg"
   description = "Allow HTTP from the internet to the ALB"
@@ -39,9 +40,50 @@ resource "aws_vpc_security_group_ingress_rule" "backend_from_alb" {
   to_port                      = var.app_port
 }
 
-
 resource "aws_vpc_security_group_egress_rule" "backend_all" {
   security_group_id = aws_security_group.backend.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1"
+}
+
+# --- RDS: database port from the backend only ---
+resource "aws_security_group" "rds" {
+  name        = "${var.project_name}-rds-sg"
+  description = "Allow database traffic from the backend only"
+  vpc_id      = aws_vpc.main.id
+
+  tags = { Name = "${var.project_name}-rds-sg" }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "rds_from_backend" {
+  security_group_id            = aws_security_group.rds.id
+  description                  = "Database traffic from backend"
+  referenced_security_group_id = aws_security_group.backend.id
+  ip_protocol                  = "tcp"
+  from_port                    = var.db_port
+  to_port                      = var.db_port
+}
+
+# --- Frontend EC2: HTTP from the internet ---
+resource "aws_security_group" "frontend" {
+  name        = "${var.project_name}-frontend-sg"
+  description = "Allow HTTP from the internet to the frontend"
+  vpc_id      = aws_vpc.main.id
+
+  tags = { Name = "${var.project_name}-frontend-sg" }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "frontend_http" {
+  security_group_id = aws_security_group.frontend.id
+  description       = "HTTP from anywhere"
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "tcp"
+  from_port         = 80
+  to_port           = 80
+}
+
+resource "aws_vpc_security_group_egress_rule" "frontend_all" {
+  security_group_id = aws_security_group.frontend.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
 }

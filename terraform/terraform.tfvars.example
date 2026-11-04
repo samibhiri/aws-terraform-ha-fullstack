@@ -1,4 +1,4 @@
 aws_region   = "us-east-1"
 project_name = "ha-fullstack"
 db_username  = "appadmin"
-db_password  = "appadmin"
+db_password  = "change-me"
