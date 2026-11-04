@@ -62,11 +62,11 @@ resource "aws_launch_template" "backend" {
   }
 
   user_data = base64encode(templatefile("${path.module}/templates/backend_user_data.sh.tftpl", {
-    repo_url = var.repo_url
-    app_port = var.app_port
-    db_host  = aws_db_instance.main.address
-    db_port  = var.db_port
-    db_name  = var.db_name
+    repo_url      = var.repo_url
+    app_port      = var.app_port
+    db_host       = aws_db_instance.main.address
+    db_port       = var.db_port
+    db_name       = var.db_name
     db_secret_arn = aws_db_instance.main.master_user_secret[0].secret_arn
     aws_region    = var.aws_region
   }))
