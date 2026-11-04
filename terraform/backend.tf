@@ -28,6 +28,22 @@ resource "aws_iam_role_policy_attachment" "ec2_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+
+# --- Allow backend instances to read the database secret, and nothing else ---
+resource "aws_iam_role_policy" "ec2_read_db_secret" {
+  name = "${var.project_name}-read-db-secret"
+  role = aws_iam_role.ec2_ssm.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "secretsmanager:GetSecretValue"
+      Resource = aws_db_instance.main.master_user_secret[0].secret_arn
+    }]
+  })
+}
+
 resource "aws_iam_instance_profile" "ec2_ssm" {
   name = "${var.project_name}-ec2-ssm-profile"
   role = aws_iam_role.ec2_ssm.name
@@ -46,13 +62,13 @@ resource "aws_launch_template" "backend" {
   }
 
   user_data = base64encode(templatefile("${path.module}/templates/backend_user_data.sh.tftpl", {
-    repo_url = var.repo_url
-    app_port = var.app_port
-    db_host  = aws_db_instance.main.address
-    db_port  = var.db_port
-    db_name  = var.db_name
-    db_user  = var.db_username
-    db_pass  = var.db_password
+    repo_url      = var.repo_url
+    app_port      = var.app_port
+    db_host       = aws_db_instance.main.address
+    db_port       = var.db_port
+    db_name       = var.db_name
+    db_secret_arn = aws_db_instance.main.master_user_secret[0].secret_arn
+    aws_region    = var.aws_region
   }))
 
   tag_specifications {

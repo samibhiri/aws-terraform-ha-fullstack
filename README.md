@@ -113,15 +113,13 @@ flowchart LR
 
 ### Secrets handling
 
-The master password is **never stored in the code**. It is declared as a
-`sensitive` Terraform variable with no default value, and supplied at runtime:
+The master password is **generated and rotated by RDS** and stored in **AWS Secrets Manager**
+(`manage_master_user_password = true`). Nobody chooses or sees it: it never appears in the code,
+the Terraform variables, the Terraform state or the instance user data.
 
-```bash
-export TF_VAR_db_password='<strong-password>'
-```
-
-Alternatively, copy `terraform/terraform.tfvars.example` to `terraform.tfvars`
-(git-ignored) and fill in the values.
+At startup, the API reads the secret with the **IAM role of its instance**, which is allowed to read
+this secret only (`secretsmanager:GetSecretValue` on its ARN). If RDS rotates the password,
+the API reloads the secret and reconnects.
 
 ## Backend
 
@@ -228,11 +226,10 @@ Only one deployment can run at a time, and only from `main`.
 |---|---|
 | `AWS_ROLE_ARN` | ARN of the read-only plan role |
 | `AWS_APPLY_ROLE_ARN` | ARN of the deployment role |
-| `TF_VAR_DB_PASSWORD` | RDS master password, injected as `TF_VAR_db_password` |
+
 
 ## Possible improvements
 
 - Replace `AdministratorAccess` on the deployment role with a least-privilege policy
 - HTTPS with an ACM certificate and a custom domain
-- Database password in AWS Secrets Manager instead of instance user data
 - One NAT Gateway per AZ and Multi-AZ RDS for production-grade availability

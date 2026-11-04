@@ -52,12 +52,6 @@ variable "db_username" {
   default     = "appadmin"
 }
 
-variable "db_password" {
-  description = "Master password of the database"
-  type        = string
-  sensitive   = true
-}
-
 variable "repo_url" {
   description = "Git repository cloned by the instances at boot"
   type        = string
