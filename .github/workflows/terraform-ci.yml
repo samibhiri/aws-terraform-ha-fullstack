@@ -50,8 +50,6 @@ jobs:
       contents: read
       id-token: write       # required to request the OIDC token
       pull-requests: write  # required to comment the plan on the PR
-    env:
-      TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
