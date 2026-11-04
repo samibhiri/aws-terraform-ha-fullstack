@@ -67,8 +67,8 @@ resource "aws_launch_template" "backend" {
     db_host  = aws_db_instance.main.address
     db_port  = var.db_port
     db_name  = var.db_name
-    db_user  = var.db_username
-    db_pass  = var.db_password
+    db_secret_arn = aws_db_instance.main.master_user_secret[0].secret_arn
+    aws_region    = var.aws_region
   }))
 
   tag_specifications {

@@ -1,9 +1,11 @@
 #!/bin/bash
 set -euxo pipefail
 
-# Install Node.js and git
+# Install git and Node.js 22 LTS (Ubuntu 24.04 ships Node.js 18, which is end-of-life)
 apt-get update -y
-apt-get install -y git nodejs npm
+apt-get install -y git curl
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+apt-get install -y nodejs   
 
 # Fetch the application code
 git clone ${repo_url} /opt/app
@@ -16,8 +18,8 @@ PORT=${app_port}
 DB_HOST=${db_host}
 DB_PORT=${db_port}
 DB_NAME=${db_name}
-DB_USER=${db_user}
-DB_PASS=${db_pass}
+DB_SECRET_ARN=${db_secret_arn}
+AWS_REGION=${aws_region}
 EOF
 chmod 600 /etc/backend.env
 
