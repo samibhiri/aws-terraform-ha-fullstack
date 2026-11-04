@@ -69,6 +69,9 @@ flowchart TB
     be1 -->|MySQL 3306| rds
     be2 -->|MySQL 3306| rds
 ```
+> - Design choices, alternatives and trade-offs: [docs/decisions.md](docs/decisions.md)
+> - Cost estimate: [docs/cost-estimate.md](docs/cost-estimate.md)
+> - Well-Architected review: [docs/well-architected-review.md](docs/well-architected-review.md)
 
 ## Network design
 

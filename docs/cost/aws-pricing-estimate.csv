@@ -1,0 +1,18 @@
+Résumé de l'estimation
+Coût initial,Coût mensuel,Total 12 months cost,Devise
+0,103.7,1244.40,USD
+,,* Inclut le coût initial
+
+
+Estimation détaillée
+Hiérarchie du groupe,Région,Description,Service,Frais initiaux,Frais mensuels,First 12 months total,Devise,Statut,Récapitulatif de configuration
+My Estimate,USA Est (Virginie du Nord),,Amazon EC2 ,0,24.695999999999998,296.35,USD,,"Location (Instances partagées), Système d’exploitation (Linux), Workload (Consistent, Nombre d’instances: 3), Instance EC2 avancée (t3.micro), Pricing strategy (On-Demand Utilization: 100 %Utilized/Month), Activer la surveillance (désactivé), EBS Quantité de stockage (8 Go), DT Entrant: Not selected (0 To par mois), DT Sortant: Not selected (0 To par mois), DT Intra-région: (0 To par mois)"
+My Estimate,USA Est (Virginie du Nord),,Amazon RDS for MySQL,0,14.71,176.52,USD,,"Quantité de stockage (20 Go), Stockage pour chaque instance RDS (SSD à usage général (gp3)), Nœuds (1), Modèle de tarification (OnDemand), Type d’instance (db.t3.micro), Utilisation (à la demande uniquement) (100 %Utilized/Month), Option de déploiement (Single-AZ)"
+My Estimate,USA Est (Virginie du Nord),,Application Load Balancer,0,16.66,199.92,USD,,Nombre d'Application Load Balancers (1)
+My Estimate,USA Est (Virginie du Nord),,Public IPv4 Address,0,14.6,175.20,USD,,Nombre d'adresses IPv4 publiques en cours d'utilisation (4)
+My Estimate,USA Est (Virginie du Nord),,Network Address Translation (NAT) Gateway,0,33.03,396.36,USD,,"Nombre de passerelles NAT régionales (1), Nombre de zones de disponibilité dans lesquelles les passerelles NAT régionales sont actives (1), Nombre de passerelles NAT (1)"
+
+
+
+Accusé de réception
+"* AWS Pricing Calculator fournit seulement une estimation de vos frais AWS et n'inclut pas toutes les taxes qui peuvent s'appliquer. Les frais réels dépendent de divers facteurs, et notamment de votre utilisation réelle des services AWS."
