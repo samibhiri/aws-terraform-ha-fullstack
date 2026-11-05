@@ -5,7 +5,8 @@
 Deploying a full-stack web application on AWS using Terraform: custom VPC,
 load balancing, auto scaling and a managed database.
 
-🚧 **Work in progress**: the infrastructure is being built step by step.
+✅ **Status**: complete. The stack was deployed from GitHub Actions, tested (self-healing and auto scaling)
+and destroyed. See the [demo](#demo).
 
 ## Roadmap
 
@@ -17,9 +18,19 @@ load balancing, auto scaling and a managed database.
 - [x] CI pipeline (GitHub Actions): `fmt`, `validate` and `tflint` on every pull request
 - [x] `terraform plan` on every pull request, authenticated to AWS with OIDC
 - [x] Remote state in S3 and manual apply / destroy workflow
-- [ ] End-to-end deployment and resilience demo
+- [x] End-to-end deployment and resilience demo
 
-## Architecture (current state)
+## Architecture
+
+![Overall architecture](docs/diagrams/01-architecture.png)
+
+More diagrams: [network](docs/diagrams/02-network.png) ·
+[security groups](docs/diagrams/03-security.png) ·
+[resilience](docs/diagrams/04-resilience.png) ·
+[CI/CD](docs/diagrams/05-cicd.png)
+
+<details>
+<summary>Same architecture as a Mermaid diagram</summary>
 
 ```mermaid
 flowchart TB
@@ -69,9 +80,78 @@ flowchart TB
     be1 -->|MySQL 3306| rds
     be2 -->|MySQL 3306| rds
 ```
+
+</details>
+
 > - Design choices, alternatives and trade-offs: [docs/decisions.md](docs/decisions.md)
 > - Cost estimate: [docs/cost-estimate.md](docs/cost-estimate.md)
 > - Well-Architected review: [docs/well-architected-review.md](docs/well-architected-review.md)
+
+## Demo
+
+The stack was deployed with the **Terraform deploy** workflow, tested, then destroyed
+(38 resources created, 38 destroyed, about 0.30 USD for the session).
+Account identifiers are masked in the screenshots.
+
+### The application works end to end
+
+Browser → frontend (nginx) → ALB → backend → Secrets Manager → RDS.
+
+![Guestbook](docs/screenshots/01-guestbook.png)
+
+### Two healthy targets, one per Availability Zone
+
+![Target group with two healthy targets](docs/screenshots/02-target-group-healthy.png)
+
+### Administration without SSH, no password on the instance
+
+A Session Manager session on a private backend instance: the API runs as a systemd service on Node.js 22,
+and its environment file only holds the ARN of the database secret.
+
+![Session Manager session](docs/screenshots/03-ssm-session.png)
+
+### The database only accepts the backend security group
+
+![RDS security group](docs/screenshots/04-rds-security-group.png)
+
+### The database password is managed by RDS in Secrets Manager
+
+"Last retrieved" shows that the API reads the secret at startup.
+
+![Secrets Manager](docs/screenshots/05-secrets-manager.png)
+
+### Self-healing
+
+A backend instance is terminated by hand…
+
+![Instance terminated](docs/screenshots/06-self-healing-terminate.png)
+
+…and the Auto Scaling group replaces it within seconds. The activity history also shows the
+scale-out triggered by the CPU alarm (top line).
+
+![Auto Scaling activity](docs/screenshots/07-asg-activity.png)
+
+### Auto scaling on CPU
+
+With `stress-ng` running on both instances, average CPU crosses the 70 % target and the high alarm fires…
+
+![CloudWatch alarm](docs/screenshots/08-cloudwatch-alarm-high.png)
+
+…and the Auto Scaling group adds instances, up to four. (Captured as `terraform destroy` was starting:
+the frontend is already terminated.)
+
+![Four backend instances](docs/screenshots/09-scale-out-instances.png)
+
+### Findings from the deployment
+
+- **The scaling metric is the group average**: stressing one instance out of two gives about 50 % CPU,
+  below the 70 % target, so nothing happens.
+- **Basic monitoring slows scaling down**: CPU metrics arrive every 5 minutes, so scale-out took
+  about 10 minutes. Detailed monitoring would make it faster.
+- **New instances burn CPU while they bootstrap**, which kept the alarm high and led to a fourth instance.
+  An instance warmup period (or a pre-built AMI) would avoid this.
+- **Connection draining lasts 5 minutes by default** (deregistration delay of 300 seconds);
+  30 seconds would be enough for this API.
 
 ## Network design
 
