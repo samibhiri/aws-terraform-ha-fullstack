@@ -199,7 +199,7 @@ short-lived credentials (1 hour) by assuming an IAM role. No access key is store
 | IAM role | Used by | Permissions | Trust condition |
 |---|---|---|---|
 | `github-actions-terraform-plan` | pull request plans | `ReadOnlyAccess` | this repository only |
-| `github-actions-terraform-apply` | manual deployments | `AdministratorAccess` | this repository, **`main` branch only** |
+| `github-actions-terraform-apply` | manual deployments | least-privilege policy ([iam/terraform-deploy-policy.json](iam/terraform-deploy-policy.json)) | this repository, **`main` branch only** |
 
 Trust policies match GitHub's OIDC `sub` claim, which includes the immutable owner and
 repository IDs (`repo:<owner>@<id>/<repo>@<id>:...`): a renamed or re-created repository
@@ -233,6 +233,7 @@ Only one deployment can run at a time, and only from `main`.
 
 ## Possible improvements
 
-- Replace `AdministratorAccess` on the deployment role with a least-privilege policy
+- Manage the bootstrap resources (state bucket, OIDC provider, CI/CD roles and policies) in a separate Terraform project
+- Add a permissions boundary to the roles created by the deployment role
 - HTTPS with an ACM certificate and a custom domain
 - One NAT Gateway per AZ and Multi-AZ RDS for production-grade availability
