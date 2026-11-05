@@ -208,10 +208,12 @@ long-lived AWS keys in GitHub.
   create billable infrastructure.
 - **Terraform Cloud / HCP Terraform**: managed state, plans and approvals.
 
-**Trade-offs.** The deployment role currently uses `AdministratorAccess`, restricted to the `main`
-branch by its trust policy. A least-privilege policy is planned. The trust policies match GitHub's
-`sub` claim with the immutable owner and repository IDs, so a re-created repository with the same
-name cannot assume the roles.
+**Trade-offs.** The deployment role uses a least-privilege policy
+([iam/terraform-deploy-policy.json](../iam/terraform-deploy-policy.json)): service-level permissions
+limited to `us-east-1` for EC2, load balancing, Auto Scaling and RDS, and strict permissions for IAM
+(only `ha-fullstack-*` roles, a single attachable managed policy, `iam:PassRole` to EC2 only) and for the
+state bucket. It can still write inline policies on `ha-fullstack-*` roles: a permissions boundary would
+close this gap. The trust policies match GitHub's `sub` claim with the immutable owner and repository IDs, so a re-created repository with the same name cannot assume the roles.
 
 ---
 

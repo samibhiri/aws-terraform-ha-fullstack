@@ -18,11 +18,12 @@ Gaps are listed deliberately: they are the backlog of a production version.
 | In place | Gaps |
 |---|---|
 | Backend and database in private subnets, no public endpoint for RDS | HTTP only: no TLS between users and the load balancer |
-| Security groups chained by reference: API reachable only from the ALB, database only from the backend | Deployment role uses `AdministratorAccess` (least-privilege policy planned) |
+| Security groups chained by reference: API reachable only from the ALB, database only from the backend | Inline policies on project roles are not capped by a permissions boundary |
 | No SSH port open: administration through SSM Session Manager | No AWS WAF in front of the load balancer |
 | CI/CD authenticates with OIDC: no long-lived AWS keys; deployment role restricted to `main` | RDS storage encryption and CloudTrail not explicitly configured |
 | State bucket encrypted, versioned, public access blocked | |
 | Database password generated and rotated by RDS in Secrets Manager, readable only by the backend instance role | |
+| Deployment role restricted by a least-privilege IAM policy, versioned in the repository | |
 
 ## Reliability
 
@@ -58,5 +59,4 @@ Gaps are listed deliberately: they are the backlog of a production version.
 
 ## Next steps
 
-- Replace `AdministratorAccess` on the deployment role with a least-privilege policy
 - Run a formal review with the [AWS Well-Architected Tool](https://aws.amazon.com/well-architected-tool/)
