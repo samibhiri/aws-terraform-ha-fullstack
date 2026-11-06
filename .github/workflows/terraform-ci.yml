@@ -16,7 +16,7 @@ defaults:
 jobs:
   checks:
     name: Format, validate and lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
     name: Terraform plan
     needs: checks
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write       # required to request the OIDC token
